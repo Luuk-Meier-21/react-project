@@ -1,109 +1,108 @@
 import Matter from "matter-js";
+import P5 from 'p5';
 import React from 'react';
-import CustomRender from "./comp.render";
+import PRender from "./render/render";
+
+import "./style.render.scss"
 
 export default function Comp() {
 	const Engine = Matter.Engine,
 		Render = Matter.Render,
-		Runner = Matter.Runner,
 		Bodies = Matter.Bodies,
-		Composite = Matter.Composite,
 		MouseConstraint = Matter.MouseConstraint,
-		Body = Matter.Body,
 		Mouse = Matter.Mouse,
 		World = Matter.World;
 
 	// Refs
-	const isPressed = React.useRef(false)
 	const scene: React.MutableRefObject<any> = React.useRef()
-	const engine: React.MutableRefObject<any> = React.useRef(Engine.create())
+	const htmlScene: React.MutableRefObject<any> = React.useRef()
+	const testHtml: React.MutableRefObject<any> = React.useRef()
+	const engine: React.MutableRefObject<Matter.Engine> = React.useRef(Engine.create())
+	const test = process.env.PUBLIC_URL + '/logo192.png';
 
 	// Global bodies
-	const cube = Bodies.rectangle(100, 0, 50, 50, {
-		render: {
-			name: 'cube',
-			fillStyle: 'red',
-			strokeStyle: 'green',
-			lineWidth: 3,
-			text:{
-				content:"Test",
-				color:"blue",
-				size:40,
-				family:"helvetica",
-			},
-	   	}
-	} as any);
 
 	// TODO: Add window resize to "cw" and "ch",
 	// 		 Make "cw" and "ch" a react state so it is available to the whole component
 
-	// TODO: Make renderder that is able to render text and fonts
-
 	React.useEffect(() => {
-		
-		// mount
-		const cw = document.body.clientWidth
-		const ch = document.body.clientHeight
-		const render = Render.create({
-			element: scene.current,
-			engine: engine.current,
-			options: {
-				wireframes: false,
-				width: cw,
-				height: ch,
+		const cw = document.body.clientWidth;
+		const ch = document.body.clientHeight;
+		const fontUrl = process.env.PUBLIC_URL + '/assets/Roboto-Regular.otf';
+		let render: Matter.Render;
+
+		new P5((p: P5) => {
+			const b = new PRender(p, engine.current);			
+			let pFont: P5.Font;
+
+			p.preload = () => {
+				pFont = p.loadFont(fontUrl);
 			}
-		});
 
-		// console.log(render)
+			p.setup = () => {
+				const canvas = p.createCanvas(cw, ch);
+				
+				// p.pixelDensity(2);
+      			p.background('blue');
+				render = Matter.Render.create({
+					element: scene.current,
+					engine: engine.current,
+					options: {
+						width: cw,
+						height: ch,
+						showAngleIndicator: true,
+						showPositions: true
+					} as any
+				});
+				b.mouse(render);
+				b.rect(false, cw / 2, -10, cw, 20, { 
+					isStatic: true,
+					// render: {
+					// 	visible: false
+					// }
+				});
+				b.rect(false, -10, ch / 2, 20, ch, { 
+					isStatic: true,
+					// render: {
+					// 	visible: false
+					// }
+				});
+				b.rect(false, cw / 2, ch + 10, cw, 20, { 
+					isStatic: true,
+					// render: {
+					// 	visible: false
+					// }
+				});
+				b.rect(false, cw + 10, ch / 2, 20, ch, { 
+					isStatic: true,
+					// render: {
+					// 	visible: false
+					// }
+				})
 
-		// Boundaries
-		World.add(engine.current.world, [
-			Bodies.rectangle(cw / 2, -10, cw, 20, { 
-				isStatic: true,
-				render: {
-					visible: false
-				}
-			}),
-			Bodies.rectangle(-10, ch / 2, 20, ch, { 
-				isStatic: true,
-				render: {
-					visible: false
-				}
-			}),
-			Bodies.rectangle(cw / 2, ch + 10, cw, 20, { 
-				isStatic: true,
-				render: {
-					visible: false
-				}
-			}),
-			Bodies.rectangle(cw + 10, ch / 2, 20, ch, { 
-				isStatic: true,
-				render: {
-					visible: false
-				}
-			 })
-		])
+				b.rect(false, 100, 100, 50, 50)
+				// b.htmlFont(false, testHtml.current.children[1], pFont, canvas);
+				const test = b.htmlFont(false, testHtml.current.children[2], pFont, canvas);
+				// b.font(false, 'b', 400, pFont, 400, 400);
 
-		// Bodies
-		World.add(engine.current.world, cube);
+				// b.paragraph(htmlScene.current);
 
-		// Mouse
-		const mouse = Mouse.create(render.canvas);
-        const mouseConstraint = MouseConstraint.create(engine.current, {
-            mouse: mouse,
-            constraint: {
-                stiffness: 0.2,
-                render: {
-                    visible: false
-                }
-            }
-        } as any);
+				Matter.Runner.run(engine.current);
+				/**	
+				 * Debug render:
+				 */
+				Matter.Render.run(render);
+			}
 
-		World.add(engine.current.world, mouseConstraint);
+			p.draw = () => {
+				render.canvas.style.background = 'none';
+				p.background('darkblue');
+				b.render();
+				// a.render();
 
-		// Run the engine
-		
-		CustomRender.run(render, engine.current);
+				// console.log(htmlScene.current.children[0].offsetWidth)
+			}
+		}, scene.current);
 
 		// Unmount
 		return () => {
@@ -111,17 +110,29 @@ export default function Comp() {
 			// Render.stop(render)
 			World.clear(engine.current.world, false)
 			Engine.clear(engine.current)
-			render.canvas.remove()
+			// render.canvas.remove()
 		}
 	}, [])
 
 	return (
-		<div>
-			<div ref={scene} style={{ width: '100%', height: '100%' }} />
+		<div className='comp'>
+			<div ref={scene} className='comp__scene'>
+				{/* <p ref={htmlScene} className="comp__scene__html">
+					Nulla quis lorem ut libero malesuada feugiat. Vestibulum ac diam sit amet quam vehicula elementum sed sit amet dui.
+				</p> */}
+				<p ref={testHtml} className="comp__scene__html">
+					<span>a</span>
+					<span>c</span>
+					<BaselineSpan>w</BaselineSpan>	
+				</p>
+			</div>
 		</div>
 	)
 }
 
+function BaselineSpan(props: {children: string}) {
+	return <span>{props.children}<span></span></span>
+}
 
   // connnecting parts
   // const partA = Bodies.rectangle(0,  0, 50, 50, { inertia: Infinity })
@@ -141,3 +152,4 @@ export default function Comp() {
   //     Body.setPosition(partB, { x: partB.position.x, y: partB.position.y + 25 })
   //   }, 100);
   // }, 3000)
+
