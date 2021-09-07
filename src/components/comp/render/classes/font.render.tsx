@@ -95,10 +95,10 @@ export default class Char extends PRendererBody {
             isStatic: true
         })
         Matter.Body.translate(fontConvex, {
-            x: this.initialX,
+            x: this.initialX - ew / 2 + this.bounds.x,
             y: 0
         })
-        console.log(this.text, bounds.x, pointsCenter.x, bounds.h, bounds.h/2);
+        console.log(this.text, bounds.x, pointsCenter.x, bounds.w, bounds.w/2);
         // console.log(this.text+ " x: ", (offset.x - bounds.x) - (bounds.w / 2),);
         
         const body = Matter.Body.create({
