@@ -76,13 +76,17 @@ export default class PRender {
 		font: p5.Font, 
 		canvas: P5.Renderer,
 		options: Matter.IChamferableBodyDefinition = {}
-	): Char {
+	): Char | boolean{
 		// TODO:	
 		//		loop over children
 		//		divide text by space in paragraph
-
-		// DEBUG ONLY:
-		return this.add(name, new Char(element, font, canvas, this.deps, options));
+		
+		const array: any = [];
+		for (let i = 0; i < element.children.length; i++) {
+			const childElement = element.children[i];
+			array.push(this.add(name, new Char(childElement, font, canvas, this.deps, options)));
+		}
+		return array;
 	}
 
 	public paragraph(parentElement: any, options: Matter.IChamferableBodyDefinition = {}) {

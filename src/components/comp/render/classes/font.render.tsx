@@ -6,6 +6,15 @@ import { PRendererBody, RenderDeps } from './_core.render'
 export default class Char extends PRendererBody {
 	public initialX: number = 0;
 	public initialY: number = 0;
+    public offset = {
+        x: 0,
+        y: 0
+    }
+    public center = {
+        x: 0,
+        y: 0
+    }
+    
 
     public compStyle: any = window.getComputedStyle(this.element);;
     public fontSize: number = this.pxToNum(this.compStyle.fontSize);;
@@ -15,6 +24,7 @@ export default class Char extends PRendererBody {
         simplifyThreshold: 0
     });
     private matterBody: Matter.Body;
+    public bounds: any = this.font.textBounds(this.text, 0, 0, this.fontSize);
 
 	constructor(
 		public element: any,
@@ -35,51 +45,134 @@ export default class Char extends PRendererBody {
     }
 
     public createBody(isStatic: boolean) {
-        const bounds: any = this.font.textBounds(this.text, 0, 0, this.fontSize);
-        const center: any = Matter.Vertices.centre(this.points as any);
-        const baselineY = this.measureBaseline();
+        // Verticle declarations
+        const points: any = this.points;
+        const convexPoints = Matter.Vertices.hull(points);
 
+        // Font measurements
+        const bounds: any = this.bounds;
+        const pointsCenter: any = this.convexCenter(this.points);
+        const convexCenter: any = this.convexCenter(convexPoints);
+        const baselineY = this.measureBaseline();
+        const baselineCenterY = baselineY - bounds.h / 2;
+        console.log(bounds)
+        const offset: any = {
+            x: pointsCenter.x - bounds.x - (bounds.w / 2),
+            // x: (center.x - bounds.x) - (bounds.w / 2),
+            y: (bounds.h / 2) + pointsCenter.y
+        }
+        
+        // Element measurements
         const [ew, eh] = [this.element.offsetWidth, this.element.offsetHeight];
         const [ex, ey] = [this.element.offsetLeft, this.element.offsetTop];
-        const coX = (center.x - bounds.x) - (bounds.w / 2);
-        const coY = (bounds.h / 2) + center.y;
-        
+
+        // Global measurements
         this.initialX = ex + (ew / 2);
-        this.initialY = ey + (eh / 2);   
+        this.initialY = ey + (eh / 2);
+        this.offset = offset;
+        this.center = pointsCenter;
+        this.offset = offset;
 
-        const elementBox = Matter.Bodies.rectangle(0, this.initialY, ew, eh);
-        const boundBox = Matter.Bodies.rectangle(0, baselineY - (bounds.h /2), bounds.w, bounds.h);
-        // Mouse contraint not working on bodys
-        const fontVertex: any = Matter.Body.create({
+        // Bodies
+        const elementBox = Matter.Bodies.rectangle(this.initialX, this.initialY, ew, eh, {
+            isSensor: true
+        });
+        const boundBox = Matter.Bodies.rectangle(0, baselineCenterY, bounds.w, bounds.h, {
+            isSensor: true
+        });
+        // const fontConvex: any = Matter.Bodies.fromVertices(0, 0, convexPoints as any, {
+        //     position: {
+        //         x: offset.x,
+        //         y: offset.y + baselineCenterY
+        //     }
+        // });
+        const fontConvex = Matter.Body.create({
+            vertices: points,
             position: {
-                x: coX,
-                y: coY
+                x: this.center.x - this.bounds.x,
+                y: offset.y + baselineCenterY
             },
-            vertices: this.points as any,
-            // isStatic: true,
-        });
-        const fontConvex: any = Matter.Bodies.fromVertices(coX, coY, this.points, {
             isStatic: true
-        });  
-
+        })
         Matter.Body.translate(fontConvex, {
-            x: 0,
-            y: baselineY - bounds.h / 2
-        });
-
+            x: this.initialX,
+            y: 0
+        })
+        console.log(this.text, bounds.x, pointsCenter.x, bounds.h, bounds.h/2);
+        // console.log(this.text+ " x: ", (offset.x - bounds.x) - (bounds.w / 2),);
+        
         const body = Matter.Body.create({
             parts: [
-                fontVertex,
-                fontConvex,
-                // boundBox
+                elementBox,
+                // boundBox,
+                fontConvex
             ],
             isStatic: true
         });
-        Matter.Body.translate(body, {
-            x: this.initialX,
-            y: 0
-        });
+
+        // // Transforms
+        // Matter.Body.translate(body, {
+        //     x: this.initialX,
+        //     y: 0
+        // });
+        // Matter.Body.setCentre(body, {
+        //     x: ex + (ew / 2),
+        //     y: ey  + (eh / 2)
+        // })
         return body;
+    }
+
+    public render(): void {
+        // if(this.visible) {
+		// 	const {x, y} = this.matterBody.position;
+		// 	const angle = this.matterBody.angle;
+		// 	this.element.style.transform = 
+		// 		this.translate(
+        //             x - this.initialX + this.offset.x, 
+        //             y - (this.initialY)
+        //         ) + 
+		// 		this.rotate(angle);
+		// }
+
+        const p = this.deps.p;
+        p.push()
+        const ox = (this.center.x - this.bounds.x)
+        console.log(ox)
+        const oy = 0;
+        const offx = 400 - (this.center.x)
+        p.translate(400, 400)
+        p.fill('green')
+        p.beginShape();
+        for (let i = 0; i < this.points.length; i++) {
+            const point: any = this.points[i];
+            p.vertex(point.x, point.y)
+        }
+        p.endShape(p.CLOSE);
+        p.pop()
+    }
+
+    /**
+     * Calculates offset 
+     * @param center center vector of convex shape
+     * @param bounds bounds object given 
+     * @returns {Matter.Vector} of calculated offset to position center
+     */
+    private fontOffset(center: Matter.Vector, bounds: any): Matter.Vector {
+        return {
+            x: (bounds.w / 2) - center.x,
+            // x: (center.x - bounds.x) - (bounds.w / 2),
+            y: (bounds.h / 2) + center.y
+        }
+    }
+
+    /**
+     * 
+     * @param points points verticles
+     * @returns {Matter.Vector} of convex centriod(center) relative to points
+     */
+
+    private convexCenter(points: any): Matter.Vector {
+        return Matter.Vertices.centre(points as any);
     }
 
     private measureBaseline(): number {
@@ -91,17 +184,6 @@ export default class Char extends PRendererBody {
     public async awaitFonts(callback: any) {
         await (document as any).fonts.ready
         callback();
-    }
-
-    public render(): void {
-        // TODO: Align element y to position of body (avoid the sink probleem)
-        // if(this.visible) {
-		// 	const {x, y} = this.matterBody.position;
-		// 	const angle = this.matterBody.angle;
-		// 	this.element.style.transform = 
-		// 		this.translate(x - this.initialX, y - (this.initialY)) + 
-		// 		this.rotate(angle);
-		// }
     }
 
     private translate(x: number, y: number): string {
@@ -121,88 +203,3 @@ export default class Char extends PRendererBody {
         return `${value}px`;
     }
 }
-
-class ConvexBody {
-
-} 
-
-// export class Font extends PRendererBody {
-// 	private matterBody: Matter.Body;
-//     public points: any;
-//     public bounds: any;
-
-// 	constructor(
-// 		public initialX: number, 
-// 		public initialY: number, 
-//         public font: p5.Font,
-//         public text: string,
-//         public size: number,
-// 		public deps: RenderDeps,
-// 		public options: Matter.IChamferableBodyDefinition
-// 	) {
-// 		super(deps, options);
-//         this.points = this.font.textToPoints(this.text, 0, 0, this.size, {
-//             sampleFactor: 1
-//         })
-//         this.bounds = this.font.textBounds(this.text, 0, 0, this.size);
-//         const [bw, bh] = [this.bounds.w, this.bounds.h];
-        
-//         const fontCollider = Matter.Bodies.fromVertices(0, 0, this.points, {
-//             isStatic: true
-//         });
-//         console.log(this.text, this.bounds.x, this.bounds.h + this.bounds.y)
-       
-        
-//         const {min, max} = fontCollider.bounds;
-//         const w = max.x - min.x;
-//         const h = max.y - min.y;
-        
-//         const fontBounds = Matter.Bodies.rectangle(0, 0, w, h)
-
-//         Matter.Body.setCentre(fontCollider, {
-//             x: 100,
-//             y: 100
-//         })
-//         // Matter.Body.translate(fontCollider, {
-//         //     x: 0,
-//         //     y: 0
-//         // })
-        
-//         this.matterBody = Matter.Body.create({
-//             parts: [fontCollider, fontBounds],
-//             isStatic: true
-//         });
-
-//         Matter.Body.translate(this.matterBody, {
-//             x: this.initialX,
-//             y: this.initialY
-//         })
-
-//         console.log()
-
-//         // TODO: add matterbody to world
-// 		// this.matterBody = Matter.Bodies.rectangle(x, y, w, h, options);
-// 		Matter.World.add(this.deps.w, this.matterBody);
-// 	}
-
-// 	render(): void {
-// 		if(this.visible) {
-// 			const {x, y} = this.matterBody.position;
-//             const b = this.bounds      
-// 			const angle = this.matterBody.angle;
-// 			const p = this.deps.p;
-
-//             p.push();
-//             // p.translate(x, y);
-// 			// p.rotate(angle);
-//             // p.textSize(this.size);
-//             // p.textFont('Roboto');
-//             // p.fill(10, 10, 10);
-//             // p.text(this.text, - this.bounds.w / 2, this.bounds.h / 2);
-
-
-//             // p.rectMode(this.deps.p.CENTER);
-		
-// 		}
-// 	};
-// }

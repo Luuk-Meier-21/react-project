@@ -42,7 +42,6 @@ export default function Comp() {
 			p.setup = () => {
 				const canvas = p.createCanvas(cw, ch);
 				
-				// p.pixelDensity(2);
       			p.background('blue');
 				render = Matter.Render.create({
 					element: scene.current,
@@ -80,9 +79,10 @@ export default function Comp() {
 					// }
 				})
 
-				b.rect(false, 100, 100, 50, 50)
+				// b.rect(false, 100, 100, 50, 50)
 				// b.htmlFont(false, testHtml.current.children[1], pFont, canvas);
-				const test = b.htmlFont(false, testHtml.current.children[2], pFont, canvas);
+	
+				const test = b.htmlFont(false, testHtml.current, pFont, canvas);
 				// b.font(false, 'b', 400, pFont, 400, 400);
 
 				// b.paragraph(htmlScene.current);
@@ -120,18 +120,34 @@ export default function Comp() {
 				{/* <p ref={htmlScene} className="comp__scene__html">
 					Nulla quis lorem ut libero malesuada feugiat. Vestibulum ac diam sit amet quam vehicula elementum sed sit amet dui.
 				</p> */}
-				<p ref={testHtml} className="comp__scene__html">
+				<CollitionParagraph htmlRef={testHtml}>
+					K
+				</CollitionParagraph>
+				{/* <p ref={testHtml} className="comp__scene__html">
 					<span>a</span>
 					<span>c</span>
-					<BaselineSpan>w</BaselineSpan>	
-				</p>
+					<BaselineSpan>a</BaselineSpan>	
+				</p> */}
 			</div>
 		</div>
 	)
 }
 
-function BaselineSpan(props: {children: string}) {
-	return <span>{props.children}<span></span></span>
+function CollitionParagraph(props: {
+	children: string
+	htmlRef: React.MutableRefObject<any>
+}) {
+	// parentElement.innerHTML
+	// 		.replace(/./g, "<span>$&</span>")
+	// 		.replace(/\s/g, " ");
+	const characters = props.children.match(/./g) || [];
+	return (
+		<p className="collision-p" ref={props.htmlRef}>
+			{characters.map((a) => (
+				<span>{a}<span className="baseline"/></span>
+			))}
+		</p>
+	)
 }
 
   // connnecting parts
