@@ -1,5 +1,6 @@
 import Matter from "matter-js";
 import P5 from 'p5';
+import Opentype from 'opentype.js';
 import React from 'react';
 import PRender from "./render/render";
 
@@ -14,25 +15,37 @@ export default function Comp() {
 		World = Matter.World;
 
 	// Refs
-	const scene: React.MutableRefObject<any> = React.useRef()
-	const htmlScene: React.MutableRefObject<any> = React.useRef()
-	const testHtml: React.MutableRefObject<any> = React.useRef()
-	const engine: React.MutableRefObject<Matter.Engine> = React.useRef(Engine.create())
-	const test = process.env.PUBLIC_URL + '/logo192.png';
+	const scene: React.MutableRefObject<any> = React.useRef();
+	const testHtml: React.MutableRefObject<any> = React.useRef();
+	const engine: React.MutableRefObject<Matter.Engine> = React.useRef(Engine.create());
 
-	// Global bodies
+	const [viewSize, setViewSize] = React.useState({ 
+		h: window.innerHeight,
+		w: window.innerWidth
+	})
+	const [active, setActive] = React.useState(true);
+	let updateActive: any;
 
-	// TODO: Add window resize to "cw" and "ch",
-	// 		 Make "cw" and "ch" a react state so it is available to the whole component
+	// updateView();
+	// window.addEventListener('resize', () => {
+	// 	clearTimeout(updateActive);
+	// 	setActive(false)
+	// 	updateActive = setTimeout(() => {
+	// 		setActive(true)
+	// 	}, 1000);
+	// })
 
 	React.useEffect(() => {
-		const cw = document.body.clientWidth;
-		const ch = document.body.clientHeight;
 		const fontUrl = process.env.PUBLIC_URL + '/assets/Roboto-Regular.otf';
 		let render: Matter.Render;
+		let runner: Matter.Runner;
+		let b: PRender;
 
-		new P5((p: P5) => {
-			const b = new PRender(p, engine.current);			
+		let p = active && new P5((p: P5) => {
+			b = new PRender(p, engine.current);	
+			runner = Matter.Runner.create({
+
+			})
 			let pFont: P5.Font;
 
 			p.preload = () => {
@@ -40,39 +53,38 @@ export default function Comp() {
 			}
 
 			p.setup = () => {
-				const canvas = p.createCanvas(cw, ch);
+				const canvas = p.createCanvas(viewSize.w, viewSize.h);
 				
-      			p.background('blue');
 				render = Matter.Render.create({
 					element: scene.current,
 					engine: engine.current,
 					options: {
-						width: cw,
-						height: ch,
+						width: viewSize.w,
+						height: viewSize.h,
 						showAngleIndicator: true,
 						showPositions: true
 					} as any
 				});
 				b.mouse(render);
-				b.rect(false, cw / 2, -10, cw, 20, { 
+				b.rect(false, viewSize.w / 2, -10, viewSize.w, 20, { 
 					isStatic: true,
 					// render: {
 					// 	visible: false
 					// }
 				});
-				b.rect(false, -10, ch / 2, 20, ch, { 
+				b.rect(false, -10, viewSize.h / 2, 20, viewSize.h, { 
 					isStatic: true,
 					// render: {
 					// 	visible: false
 					// }
 				});
-				b.rect(false, cw / 2, ch + 10, cw, 20, { 
+				b.rect(false, viewSize.w / 2, viewSize.h + 10, viewSize.w, 20, { 
 					isStatic: true,
 					// render: {
 					// 	visible: false
 					// }
 				});
-				b.rect(false, cw + 10, ch / 2, 20, ch, { 
+				b.rect(false, viewSize.w + 10, viewSize.h / 2, 20, viewSize.h, { 
 					isStatic: true,
 					// render: {
 					// 	visible: false
@@ -86,8 +98,7 @@ export default function Comp() {
 				// b.font(false, 'b', 400, pFont, 400, 400);
 
 				// b.paragraph(htmlScene.current);
-
-				Matter.Runner.run(engine.current);
+				Matter.Runner.start(runner, engine.current);		
 				/**	
 				 * Debug render:
 				 */
@@ -95,24 +106,30 @@ export default function Comp() {
 			}
 
 			p.draw = () => {
+				console.log('hi')
 				render.canvas.style.background = 'none';
-				p.background('darkblue');
+				p.background('white');
 				b.render();
 				// a.render();
 
 				// console.log(htmlScene.current.children[0].offsetWidth)
 			}
+			return p;
 		}, scene.current);
 
 		// Unmount
 		return () => {
 			// Destroy Matter
-			// Render.stop(render)
-			World.clear(engine.current.world, false)
-			Engine.clear(engine.current)
-			// render.canvas.remove()
+
+			Matter.Render.stop(render);
+			Matter.World.clear(engine.current.world, false);
+			Matter.Engine.clear(engine.current);
+			render.canvas.remove();
+			(render.canvas as any) = null;
+			(render.canvas as any) = null;
+			render.textures = {};
 		}
-	}, [])
+	})
 
 	return (
 		<div className='comp'>
@@ -120,9 +137,12 @@ export default function Comp() {
 				{/* <p ref={htmlScene} className="comp__scene__html">
 					Nulla quis lorem ut libero malesuada feugiat. Vestibulum ac diam sit amet quam vehicula elementum sed sit amet dui.
 				</p> */}
-				<CollitionParagraph htmlRef={testHtml}>
-					b
-				</CollitionParagraph>
+				{ active && (
+					<CollitionParagraph htmlRef={testHtml}>
+						a
+					</CollitionParagraph>
+				)}
+				
 				{/* <p ref={testHtml} className="comp__scene__html">
 					<span>a</span>
 					<span>c</span>

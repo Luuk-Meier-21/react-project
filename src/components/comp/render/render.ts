@@ -90,6 +90,7 @@ export default class PRender {
 	}
 
 	public paragraph(parentElement: any, options: Matter.IChamferableBodyDefinition = {}) {
+		console.log(parentElement.innerHTML)
 		parentElement.innerHTML = parentElement.innerHTML
 			.replace(/./g, "<span>$&</span>")
 			.replace(/\s/g, " ");
