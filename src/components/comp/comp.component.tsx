@@ -26,14 +26,13 @@ export default function Comp() {
 	const [active, setActive] = React.useState(true);
 	let updateActive: any;
 
-	// updateView();
-	// window.addEventListener('resize', () => {
-	// 	clearTimeout(updateActive);
-	// 	setActive(false)
-	// 	updateActive = setTimeout(() => {
-	// 		setActive(true)
-	// 	}, 1000);
-	// })
+	window.addEventListener('resize', () => {
+		clearTimeout(updateActive);
+		setActive(false)
+		updateActive = setTimeout(() => {
+			setActive(true)
+		}, 1000);
+	})
 
 	React.useEffect(() => {
 		const fontUrl = process.env.PUBLIC_URL + '/assets/Roboto-Regular.otf';
@@ -41,81 +40,62 @@ export default function Comp() {
 		let runner: Matter.Runner;
 		let b: PRender;
 
-		let p = active && new P5((p: P5) => {
-			b = new PRender(p, engine.current);	
-			runner = Matter.Runner.create({
+		let p =  new P5((p: P5) => p, scene.current);
 
+		b = new PRender(p, engine.current);	
+		runner = Matter.Runner.create({
+
+		})
+		let pFont: P5.Font;
+
+		p.preload = () => {
+			pFont = p.loadFont(fontUrl);
+		}
+
+		p.setup = () => {
+			const canvas = p.createCanvas(viewSize.w, viewSize.h);
+			
+			render = Matter.Render.create({
+				element: scene.current,
+				//@ts-ignore
+				engine: undefined,
+				options: {
+					width: viewSize.w,
+					height: viewSize.h,
+					showAngleIndicator: true,
+					showPositions: true
+				} as any
+			});
+			// FIX: memory leak when resizing canvas.
+			//@ts-ignore
+			render.engine = engine.current
+
+			b.mouse(render);
+			b.rect(false, viewSize.w / 2, -10, viewSize.w, 20, { 
+				isStatic: true,
+			});
+			b.rect(false, -10, viewSize.h / 2, 20, viewSize.h, { 
+				isStatic: true,
+			});
+			b.rect(false, viewSize.w / 2, viewSize.h + 10, viewSize.w, 20, { 
+				isStatic: true,
+			});
+			b.rect(false, viewSize.w + 10, viewSize.h / 2, 20, viewSize.h, { 
+				isStatic: true,
 			})
-			let pFont: P5.Font;
+			const test = b.htmlFont(false, testHtml.current, pFont, canvas);
+			Matter.Runner.start(runner, engine.current);		
+			/**	
+			 * Debug render:
+			 */
+			Matter.Render.run(render);
+		}
 
-			p.preload = () => {
-				pFont = p.loadFont(fontUrl);
-			}
-
-			p.setup = () => {
-				const canvas = p.createCanvas(viewSize.w, viewSize.h);
-				
-				render = Matter.Render.create({
-					element: scene.current,
-					engine: engine.current,
-					options: {
-						width: viewSize.w,
-						height: viewSize.h,
-						showAngleIndicator: true,
-						showPositions: true
-					} as any
-				});
-				b.mouse(render);
-				b.rect(false, viewSize.w / 2, -10, viewSize.w, 20, { 
-					isStatic: true,
-					// render: {
-					// 	visible: false
-					// }
-				});
-				b.rect(false, -10, viewSize.h / 2, 20, viewSize.h, { 
-					isStatic: true,
-					// render: {
-					// 	visible: false
-					// }
-				});
-				b.rect(false, viewSize.w / 2, viewSize.h + 10, viewSize.w, 20, { 
-					isStatic: true,
-					// render: {
-					// 	visible: false
-					// }
-				});
-				b.rect(false, viewSize.w + 10, viewSize.h / 2, 20, viewSize.h, { 
-					isStatic: true,
-					// render: {
-					// 	visible: false
-					// }
-				})
-
-				// b.rect(false, 100, 100, 50, 50)
-				// b.htmlFont(false, testHtml.current.children[1], pFont, canvas);
-	
-				const test = b.htmlFont(false, testHtml.current, pFont, canvas);
-				// b.font(false, 'b', 400, pFont, 400, 400);
-
-				// b.paragraph(htmlScene.current);
-				Matter.Runner.start(runner, engine.current);		
-				/**	
-				 * Debug render:
-				 */
-				Matter.Render.run(render);
-			}
-
-			p.draw = () => {
-				console.log('hi')
-				render.canvas.style.background = 'none';
-				p.background('white');
-				b.render();
-				// a.render();
-
-				// console.log(htmlScene.current.children[0].offsetWidth)
-			}
-			return p;
-		}, scene.current);
+		p.draw = () => {
+			render.canvas.style.background = 'none';
+			p.background('white');
+			b.render();
+		}
 
 		// Unmount
 		return () => {
